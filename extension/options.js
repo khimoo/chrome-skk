@@ -19,6 +19,9 @@ function onload() {
       form.compression.value = data.options.system_dictionary.compression;
       form.encoding.value = data.options.system_dictionary.encoding;
     }
+    if (data.options && data.options.sands_mode) {
+      document.getElementById('sands_mode').enable_sands.checked = data.options.sands_mode.enable_sands;
+    }
   });
   var url_input = form.url;
   var compression_input = form.compression;
@@ -46,7 +49,7 @@ function onload() {
       return true;
     }
     chrome.storage.sync.get('options', (data) => {
-      if (data.options && isEqual(data.options.system_dictionary, options.system_dictionary)) {
+      if (data.options && data.options.system_dictionary && isEqual(data.options.system_dictionary, options.system_dictionary)) {
         console.log('The system dictionary parameters are unchanged. Do nothing.');
         return;
       }
@@ -54,6 +57,15 @@ function onload() {
       form.disabled = 'disabled';
       reload_button.disabled = 'disabled';
     });
+  };
+
+  document.getElementById('sands_mode').enable_sands.onchange = function() {
+    var options = {
+      sands_mode: {
+        enable_sands: this.checked
+      }
+    };
+    chrome.storage.sync.set({ options });
   };
 }
 

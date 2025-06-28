@@ -29,7 +29,31 @@ function createRomanInput(table) {
     }
 
     if (keyevent.key.length != 1 || keyevent.ctrlKey || keyevent.altKey) {
+      if (skk.sandsModeEnabled && keyevent.code === 'Space') {
+        if (keyevent.type === 'keydown') {
+          skk.spaceDown = true;
+          return true;
+        } else if (keyevent.type === 'keyup') {
+          if (skk.spaceDown && !skk.otherKeyDown) {
+            skk.commitText(' ');
+            skk.spaceDown = false;
+            return true;
+          }
+          skk.spaceDown = false;
+          skk.otherKeyDown = false;
+          return true;
+        }
+      }
       return false;
+    }
+
+    if (skk.sandsModeEnabled) {
+      if (keyevent.type === 'keydown') {
+        skk.otherKeyDown = true;
+        if (skk.spaceDown) {
+          keyevent.shiftKey = true;
+        }
+      }
     }
 
     if (!keyevent.shiftKey) {

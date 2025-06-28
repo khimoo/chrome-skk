@@ -1,4 +1,5 @@
-function SKK(engineID, dictionary) {
+function SKK(engineID, dictionary, options) {
+  options = options || {};
   this.engineID = engineID;
   this.context = null;
   this.currentMode = 'hiragana';
@@ -10,13 +11,20 @@ function SKK(engineID, dictionary) {
   this.caret = null;
   this.entries = null;
   this.dictionary = dictionary;
+  this.sandsModeEnabled = options.sandsModeEnabled || false;
 }
 
 SKK.prototype.commitText = function(text) {
+  if (!this.context) {
+    return;
+  }
   chrome.input.ime.commitText({contextID:this.context, text:text});
 };
 
 SKK.prototype.setComposition = function(text, cursor, args) {
+  if (!this.context) {
+    return;
+  }
   var allowed_fields = ['selectionStart', 'selectionEnd'];
   var obj = {
     contextID:this.context,
@@ -33,6 +41,9 @@ SKK.prototype.setComposition = function(text, cursor, args) {
 };
 
 SKK.prototype.clearComposition = function() {
+  if (!this.context) {
+    return;
+  }
   chrome.input.ime.clearComposition({contextID:this.context});
 };
 
