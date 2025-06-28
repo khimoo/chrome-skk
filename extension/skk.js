@@ -10,7 +10,75 @@ function SKK(engineID, dictionary) {
   this.caret = null;
   this.entries = null;
   this.dictionary = dictionary;
+  this.enableSandS = false; // Add this line
+
+
+  // キーボードレイアウトを判別
+  this.layout = 'us'; // デフォルト
+  if (engineID.indexOf('.jp.') !== -1) {
+    this.layout = 'jp';
+  } else if (engineID.indexOf('.dvorak.') !== -1) {
+    this.layout = 'dvorak';
+  }
+
+  // Load SandS mode setting
+  chrome.storage.sync.get('options', (data) => {
+    if (data.options && typeof data.options.enable_sands !== 'undefined') {
+      this.enableSandS = data.options.enable_sands;
+    }
+  });
+
+  // Listen for changes to SandS mode setting
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'sync' && changes.options && typeof changes.options.newValue.enable_sands !== 'undefined') {
+      this.enableSandS = changes.options.newValue.enable_sands;
+    }
+  });
 }
+
+// キーボードレイアウトに応じたシフトキー変換
+SKK.prototype.getShiftedKey = function(key) {
+  // 共通の変換（アルファベットの大文字化）
+  if (key >= 'a' && key <= 'z') {
+    return key.toUpperCase();
+  }
+
+  // レイアウトごとの変換テーブル
+  const shiftMaps = {
+    us: {
+      '1': '!', '2': '@', '3': '#', '4': '$', '5': '%',
+      '6': '^', '7': '&', '8': '*', '9': '(', '0': ')',
+      '-': '_', '=': '+', '[': '{', ']': '}', '\\': '|',
+      ';': ':', "'": '"', ',': '<', '.': '>', '/': '?',
+      '`': '~'
+    },
+    jp: {
+      '1': '!', '2': '"', '3': '#', '4': '$', '5': '%',
+      '6': '&', '7': "'", '8': '(', '9': ')', '0': '_',
+      '-': '=', '^': '~', '\\': '|', '@': '`', '[': '{',
+      ']': '}', ';': '+', ':': '*', ',': '<', '.': '>',
+      '/': '?', '_': '\\'
+    },
+    dvorak: {
+      '1': '!', '2': '@', '3': '#', '4': '$', '5': '%',
+      '6': '^', '7': '&', '8': '*', '9': '(', '0': ')',
+      '[': '{', ']': '}', "'": '"', ',': '<', '.': '>',
+      ';': ':', '/': '?', '=': '+', '-': '_', '`': '~',
+      '\\': '|'
+    }
+  };
+
+  // 現在のレイアウトの変換テーブルを取得
+  const shiftMap = shiftMaps[this.layout];
+
+  // 変換テーブルに存在するキーは変換
+  if (shiftMap && shiftMap.hasOwnProperty(key)) {
+    return shiftMap[key];
+  }
+
+  // 変換できないキーはそのまま返す
+  return key;
+};
 
 SKK.prototype.commitText = function(text) {
   chrome.input.ime.commitText({contextID:this.context, text:text});
@@ -287,17 +355,16 @@ SKK.prototype.createInnerSKK = function() {
         (keyevent.key == 'g' && keyevent.ctrlKey)) {
       outer_skk.finishInner(false);
     } else if (keyevent.key == 'y' && keyevent.ctrlKey) {
-      let readClipboardResponseHandler = (request, sender, sendResponse) => {
-        if (request.method === "read_clipboard_response") {
-          chrome.runtime.onMessage.removeListener(readClipboardResponseHandler);
-          let response = request.body;
-          inner_skk.commitText(response.content);
-          // Need to trigger an update since this code runs asynchronously
-          inner_skk.updateComposition();
+      chrome.runtime.sendMessage(
+        {method: "read_clipboard"},
+        (response) => {
+          if (response && response.method === "read_clipboard_response") {
+            inner_skk.commitText(response.body.content);
+            inner_skk.updateComposition();
+          }
         }
-      };
-      chrome.runtime.onMessage.addListener(readClipboardResponseHandler);
-      chrome.runtime.sendMessage({method: "read_clipboard"});
+      );
+      return true;
     }
 
     return true;
@@ -339,3 +406,4 @@ SKK.prototype.finishInner = function(successfully) {
     this.switchMode(this.previousMode);
   }
 };
+
