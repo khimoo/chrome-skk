@@ -1,6 +1,6 @@
 SRC := ./extension
 DIST := ./dist
-ZIP := $(shell which zip)
+ZIP := nix run nixpkgs\#zip --
 
 PACKAGE_NAME := chrome-skk
 PACKAGE_VERSION := $(shell node -e "fs=require('fs');console.log(JSON.parse(fs.readFileSync(process.argv[1])).version)" ./extension/manifest.json)
