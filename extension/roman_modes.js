@@ -9,6 +9,7 @@ function updateComposition(skk) {
 
 function createRomanInput(table) {
   return function (skk, keyevent) {
+    console.log("in createRomanInput")
     if (keyevent.key == 'Enter') {
       return false;
     }
@@ -29,10 +30,12 @@ function createRomanInput(table) {
     }
 
     if (keyevent.key.length != 1 || keyevent.ctrlKey || keyevent.altKey) {
+      console.log("lenght != 1 !!!!!!!!!!!!!!!!");
       return false;
     }
 
     if (!keyevent.shiftKey) {
+      console.log("not shift");
       if (skk.processRoman(keyevent.key, table, skk.commitText.bind(skk))) {
         return true;
       }
@@ -52,7 +55,6 @@ function createRomanInput(table) {
         return true;
       }
     } else if (keyevent.key == 'Q') {
-      console.log('here');
       skk.processRoman(keyevent.key, table, skk.commitText.bind(skk));
       skk.switchMode('preedit');
       return true;
@@ -75,6 +77,12 @@ function createRomanInput(table) {
       return true;
     }
 
+    if (keyevent.space_keyup_sands) {
+        skk.commitText(' ');
+        console.log("custom field");
+        return true;
+    }
+    console.log("return false");
     return false;
   };
 }
@@ -91,3 +99,4 @@ SKK.registerMode('katakana', {
   compositionHandler: updateComposition
 });
 })();
+

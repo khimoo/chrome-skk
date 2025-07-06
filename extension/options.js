@@ -12,12 +12,18 @@ function buildSelect(selectElement, options) {
 
 function onload() {
   var form = document.getElementById('system_dictionary');
+  var enable_sands_checkbox = document.getElementById('enable_sands_checkbox');
+
   chrome.storage.sync.get('options', (data) => {
     console.dir({ 'status': 'loaded saved options', 'data': data });
     if (data.options && data.options.system_dictionary) {
       form.url.value = data.options.system_dictionary.url;
       form.compression.value = data.options.system_dictionary.compression;
       form.encoding.value = data.options.system_dictionary.encoding;
+    }
+    // SandS
+    if (data.options && typeof data.options.enable_sands !== "undefined") {
+      enable_sands_checkbox.checked = data.options.enable_sands;
     }
   });
   var url_input = form.url;
@@ -34,7 +40,8 @@ function onload() {
         url: url_input.value,
         compression: compression_input.value,
         encoding: encoding_input.value
-      }
+      },
+      enable_sands: enable_sands_checkbox.checked // SandS
     };
     // chrome storage API does not emit an event when the value is unchanged
     // Check the currently stored value to make sure the button is not disabled forever
@@ -46,10 +53,19 @@ function onload() {
       return true;
     }
     chrome.storage.sync.get('options', (data) => {
-      if (data.options && isEqual(data.options.system_dictionary, options.system_dictionary)) {
-        console.log('The system dictionary parameters are unchanged. Do nothing.');
-        return;
-      }
+        var prev = data.options || {};
+        var changed = false;
+        if (!prev.system_dictionary ||
+            !isEqual(prev.system_dictionary, options.system_dictionary)) {
+          changed = true;
+        }
+        if (prev.enable_sands !== options.enable_sands) {
+          changed = true;
+        }
+        if (!changed) {
+          console.log('The options are unchanged. Do nothing.');
+          return;
+        }
       chrome.storage.sync.set({ options });
       form.disabled = 'disabled';
       reload_button.disabled = 'disabled';
@@ -93,3 +109,4 @@ function onReceive(request, sender, sendResponse) {
 
 window.addEventListener('load', onload);
 chrome.runtime.onMessage.addListener(onReceive);
+
