@@ -15,9 +15,6 @@ jobs:
           node-version: '18'
       - run: npm install
       - run: make
-      - name: Get package name
-        id: package_name
-        run: echo "name=$(node -e "fs=require('fs');console.log(JSON.parse(fs.readFileSync(process.argv[1])).name)" ./extension/manifest.json)" >> $GITHUB_OUTPUT
       - name: Get version
         id: package_version
         run: echo "version=$(node -e "fs=require('fs');console.log(JSON.parse(fs.readFileSync(process.argv[1])).version)" ./extension/manifest.json)" >> $GITHUB_OUTPUT
@@ -37,6 +34,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/${{ steps.package_name.outputs.name }}-${{ steps.package_version.outputs.version }}.zip
-          asset_name: ${{ steps.package_name.outputs.name }}-${{ steps.package_version.outputs.version }}.zip
+          asset_path: ./dist/chrome-skk-${{ steps.package_version.outputs.version }}.zip
+          asset_name: chrome-skk-${{ steps.package_version.outputs.version }}.zip
           asset_content_type: application/zip
