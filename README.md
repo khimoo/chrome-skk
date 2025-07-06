@@ -6,6 +6,9 @@ Chrome OS用SKK IME
 # Fork元
 このレポジトリは [hkurokawa/chrome-skk](https://github.com/hkurokawa/chrome-skk) をフォークしたものです。
 
+# 変更点
+SandSモードを実装しました。現在はhiraganaモードでのみ正常に動作します。
+
 # インストール方法
 1. Releaseページから`chrome-skk-vx.xx.xx.zip`をダウンロードして解凍する
 1. Chromeで`chrome://extensions`を開き、**Load Unpacked**をクリックして先程解凍したフォルダを指定する
