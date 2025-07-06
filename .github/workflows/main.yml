@@ -17,16 +17,26 @@ jobs:
       - run: make
       - name: Get package name
         id: package_name
-        run: echo "::set-output name=name::$(node -e "fs=require('fs');console.log(JSON.parse(fs.readFileSync(process.argv[1])).name)" ./extension/manifest.json)"
+        run: echo "name=$(node -e "fs=require('fs');console.log(JSON.parse(fs.readFileSync(process.argv[1])).name)" ./extension/manifest.json)" >> $GITHUB_OUTPUT
       - name: Get version
         id: package_version
-        run: echo "::set-output name=version::$(node -e "fs=require('fs');console.log(JSON.parse(fs.readFileSync(process.argv[1])).version)" ./extension/manifest.json)"
+        run: echo "version=$(node -e "fs=require('fs');console.log(JSON.parse(fs.readFileSync(process.argv[1])).version)" ./extension/manifest.json)" >> $GITHUB_OUTPUT
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./dist/${{ steps.package_name.outputs.name }}-${{ steps.package_version.outputs.version }}.zip
           asset_name: ${{ steps.package_name.outputs.name }}-${{ steps.package_version.outputs.version }}.zip
           asset_content_type: application/zip
