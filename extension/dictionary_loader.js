@@ -1,19 +1,36 @@
-function Dictionary() {
+function Dictionary(systemDictParam) {
   this.userDict = {};
   this.systemDict = {};
-  this.systemDictParam = {};
-  var self = this;
-  chrome.storage.sync.get('options', (data) => {
-    console.dir({'status': 'loaded saved options', 'data': data});
-    if (data.options && data.options.system_dictionary) {
-      self.systemDictParam = data.options.system_dictionary;
-    }
-  });
-  chrome.storage.onChanged.addListener(function (changes, namespace) {
-    if (changes.options && changes.options.newValue.system_dictionary) {
-      var param = changes.options.newValue.system_dictionary;
-      self.systemDictParam = param;
-      self.reloadSystemDictionary();
+  this.systemDictParam = systemDictParam || {};
+
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (changes.options && changes.options.newValue) {
+      const newOptions = changes.options.newValue;
+      const oldOptions = changes.options.oldValue || {};
+
+      // 辞書設定に実際の変更があった場合のみ処理
+      if (newOptions.system_dictionary) {
+        const newDict = newOptions.system_dictionary;
+        const oldDict = oldOptions.system_dictionary || {};
+
+        // 辞書パラメータ比較（URL/圧縮/エンコーディング）
+        const dictChanged =
+          newDict.url !== oldDict.url ||
+          newDict.compression !== oldDict.compression ||
+          newDict.encoding !== oldDict.encoding;
+
+        if (dictChanged) {
+          this.systemDictParam = newDict;
+          this.reloadSystemDictionary();
+        }
+      }
+
+      // SandS変更は辞書再読み込みをトリガーしない
+      if (typeof newOptions.enable_sands !== 'undefined' &&
+          newOptions.enable_sands !== oldOptions.enable_sands) {
+        // SandS変更時の処理（必要に応じて）
+        console.log('SandS mode changed:', newOptions.enable_sands);
+      }
     }
   });
   this.initSystemDictionary();

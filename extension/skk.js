@@ -1,4 +1,4 @@
-function SKK(engineID, dictionary) {
+function SKK(engineID, dictionary, enableSandS) {
   this.engineID = engineID;
   this.context = null;
   this.currentMode = 'hiragana';
@@ -10,6 +10,11 @@ function SKK(engineID, dictionary) {
   this.caret = null;
   this.entries = null;
   this.dictionary = dictionary;
+  this.enableSandS = !!enableSandS;
+  this.sandSflags = {
+    spacePressed: false,
+    otherKeyPressed: false
+  };
 }
 
 SKK.prototype.commitText = function(text) {
@@ -188,25 +193,70 @@ SKK.prototype.updateComposition = function() {
   }
 };
 
+
 SKK.prototype.handleKeyEvent = function(keyevent) {
-  // Do not handle modifier only keyevent.
-  // 0xFFFD hack seems not working?
-  if (keyevent.ctrlKey && keyevent.key == "Ctrl") return false;
-  if (keyevent.altKey && keyevent.key == "Alt") return false;
-  if (keyevent.key.charCodeAt(0) == 0xFFFD) {
+  // 修飾キー専用のイベントは処理しない
+  if ((keyevent.ctrlKey && keyevent.key === "Ctrl") ||
+      (keyevent.altKey  && keyevent.key === "Alt")  ||
+      (keyevent.ctrlKey && keyevent.key === ' ')    || // imeきりかえ
+       keyevent.key.charCodeAt(0) === 0xFFFD) {
     return false;
   }
 
+  if (this.enableSandS && keyevent.key === ' ') {
+      if (keyevent.type === 'keydown'){
+        console.log(keyevent);
+        this.sandSflags.spacePressed = true;
+        console.log(this.sandSflags);
+        return true;
+      } else if (keyevent.type === 'keyup') {
+        if (this.sandSflags.otherKeyPressed) {
+            this.sandSflags.spacePressed = false;
+            this.sandSflags.otherKeyPressed = false;
+            return true;
+        }
+        this.sandSflags.spacePressed = false;
+        const fakeEvent = {
+          ...keyevent,
+          space_keyup_sands: true, // custom field
+        };
+        return this.handler(fakeEvent);
+      }
+  // spaceいがい
+  } else if (keyevent.type === 'keydown') {
+      if (this.sandSflags.spacePressed) {
+        this.sandSflags.otherKeyPressed = true;
+        const fakeEvent = {
+            ...keyevent,
+            key: keyevent.key.toUpperCase(),
+            shiftKey: true,
+        }
+        return this.handler(fakeEvent);
+      }
+  } else { return false; }
+
+  // 非 SandS モードなら keydown のみ
+  if (!this.enableSandS && keyevent.type !== 'keydown') {
+    return false;
+  }
+
+  return this.handler(keyevent);
+};
+
+
+SKK.prototype.handler = function(keyevent) {
+  console.log("in handler");
   var consumed = false;
   if (this.inner_skk) {
     consumed = this.inner_skk.handleKeyEvent(keyevent);
   } else {
     var keyHandler = this.modes[this.currentMode].keyHandler;
+
     if (keyHandler) {
+      console.log("in keyhandler");
       consumed = keyHandler(this, keyevent);
     }
   }
-
   this.updateComposition();
   this.updateCandidates();
   return consumed;
@@ -339,3 +389,4 @@ SKK.prototype.finishInner = function(successfully) {
     this.switchMode(this.previousMode);
   }
 };
+
